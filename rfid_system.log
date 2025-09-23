@@ -1,0 +1,62 @@
+2025-09-22 22:21:47,150 - INFO - Base de datos inicializada correctamente
+2025-09-22 22:21:49,623 - INFO - Arduino encontrado en puerto COM7
+2025-09-22 22:21:49,624 - INFO - Sistema iniciado correctamente con puerto COM7
+2025-09-22 22:21:57,999 - INFO - Puerto COM7 abierto para lectura de UID
+2025-09-22 22:21:59,970 - INFO - UID leído exitosamente: 857A07AD
+2025-09-22 22:21:59,971 - INFO - Intento de registro duplicado - UID: 857A07AD
+2025-09-22 22:22:08,463 - INFO - Puerto COM7 abierto para lectura de UID
+2025-09-22 22:22:10,434 - INFO - UID leído exitosamente: 857A07AD
+2025-09-22 22:22:10,435 - INFO - Consulta exitosa - Alumno: A
+2025-09-22 22:27:40,932 - INFO - Sistema cerrado por interrupción del usuario
+2025-09-22 22:27:43,132 - INFO - Base de datos inicializada correctamente
+2025-09-22 22:27:45,611 - INFO - Arduino encontrado en puerto COM7
+2025-09-22 22:27:45,612 - INFO - Sistema iniciado correctamente con puerto COM7
+2025-09-22 22:27:57,910 - INFO - Sistema cerrado por interrupción del usuario
+2025-09-22 22:27:58,725 - INFO - Base de datos inicializada correctamente
+2025-09-22 22:28:01,204 - INFO - Arduino encontrado en puerto COM7
+2025-09-22 22:28:01,204 - INFO - Sistema iniciado correctamente con puerto COM7
+2025-09-22 22:28:07,822 - INFO - Puerto COM7 abierto para lectura de UID
+2025-09-22 22:28:09,981 - INFO - UID leído exitosamente: 857A07AD
+2025-09-22 22:28:09,982 - INFO - Intento de registro duplicado - UID: 857A07AD
+2025-09-22 22:28:22,994 - INFO - Puerto COM7 abierto para lectura de UID
+2025-09-22 22:28:24,965 - INFO - UID leído exitosamente: 857A07AD
+2025-09-22 22:28:31,473 - INFO - Tarjeta eliminada - Alumno: A, UID: 857A07AD
+2025-09-22 22:28:49,175 - INFO - Puerto COM7 abierto para lectura de UID
+2025-09-22 22:28:51,360 - INFO - UID leído exitosamente: 857A07AD
+2025-09-22 22:28:51,489 - INFO - Alumno registrado: A - UID: 857A07AD
+2025-09-22 22:29:04,689 - INFO - Puerto COM7 abierto para lectura de UID
+2025-09-22 22:29:07,300 - INFO - UID leído exitosamente: 857A07AD
+2025-09-22 22:29:07,302 - INFO - Consulta exitosa - Alumno: A
+2025-09-22 22:34:41,405 - INFO - Base de datos inicializada correctamente
+2025-09-22 22:34:43,879 - INFO - Arduino encontrado en puerto COM7
+2025-09-22 22:34:43,880 - INFO - Sistema iniciado correctamente con puerto COM7
+2025-09-22 22:34:43,899 - INFO - Sistema cerrado por interrupción del usuario
+2025-09-22 22:34:51,331 - INFO - Base de datos inicializada correctamente
+2025-09-22 22:34:53,807 - INFO - Arduino encontrado en puerto COM7
+2025-09-22 22:34:53,807 - INFO - Sistema iniciado correctamente con puerto COM7
+2025-09-22 22:35:04,239 - INFO - Puerto COM7 abierto para lectura de UID
+2025-09-22 22:35:07,731 - INFO - UID leído exitosamente: 857A07AD
+2025-09-22 22:35:07,732 - INFO - Consulta exitosa - Alumno: A
+2025-09-22 22:35:20,935 - INFO - Puerto COM7 abierto para lectura de UID
+2025-09-22 22:35:23,146 - INFO - UID leído exitosamente: 857A07AD
+2025-09-22 22:35:27,790 - INFO - Tarjeta eliminada - Alumno: A, UID: 857A07AD
+2025-09-22 22:35:35,318 - INFO - Puerto COM7 abierto para lectura de UID
+2025-09-22 22:35:37,289 - INFO - UID leído exitosamente: 857A07AD
+2025-09-22 22:35:37,290 - INFO - Tarjeta no registrada consultada - UID: 857A07AD
+2025-09-22 22:35:52,455 - INFO - Puerto COM7 abierto para lectura de UID
+2025-09-22 22:35:54,981 - INFO - UID leído exitosamente: 857A07AD
+2025-09-22 22:35:55,162 - INFO - Alumno registrado: T - UID: 857A07AD
+2025-09-22 22:36:10,781 - INFO - Puerto COM7 abierto para lectura de UID
+2025-09-22 22:36:12,750 - INFO - UID leído exitosamente: 857A07AD
+2025-09-22 22:36:12,752 - INFO - Consulta exitosa - Alumno: T
+2025-09-22 22:36:25,934 - INFO - Sistema cerrado por el usuario
+2025-09-22 22:37:44,367 - INFO - Base de datos inicializada correctamente
+2025-09-22 22:37:49,360 - ERROR - No se encontró ningún dispositivo RFID
+2025-09-22 22:37:53,608 - INFO - Base de datos inicializada correctamente
+2025-09-22 22:37:56,092 - INFO - Arduino encontrado en puerto COM7
+2025-09-22 22:37:56,092 - INFO - Sistema iniciado correctamente con puerto COM7
+2025-09-22 22:37:59,583 - INFO - Sistema cerrado por el usuario
+2025-09-22 22:38:11,094 - INFO - Base de datos inicializada correctamente
+2025-09-22 22:38:13,573 - INFO - Arduino encontrado en puerto COM7
+2025-09-22 22:38:13,574 - INFO - Sistema iniciado correctamente con puerto COM7
+2025-09-22 22:38:15,740 - INFO - Sistema cerrado por el usuario
