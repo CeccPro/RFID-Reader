@@ -315,7 +315,7 @@ def registrar_alumno_con_lectura(port):
                        (uid, nombre, grupo, control))
         conn.commit()
         debug_print(json.dumps({"status": "ok", "action": "register", "uid": uid, "nombre": nombre}))
-        print_success(f"¡Registro exitoso! Alumno {nombre} registrado correctamente.")
+        print_success(f"¡Registro exitoso! Alumno [{nombre}] registrado correctamente.")
         log_info(f"Alumno registrado: {nombre} - UID: {uid}")
     except sqlite3.IntegrityError:
         debug_print(json.dumps({"error": "uid_already_registered", "uid": uid}))
