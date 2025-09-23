@@ -468,7 +468,7 @@ def eliminar_tarjeta(port):
             cursor.execute("DELETE FROM alumnos WHERE uid=?", (uid,))
             conn.commit()
             print_success(f"✓ Tarjeta eliminada exitosamente.")
-            print_info(f"Alumno {nombre} ha sido removido del sistema.")
+            print_info(f"Alumno [{nombre}] ha sido removido del sistema.")
             log_info(f"Tarjeta eliminada - Alumno: {nombre}, UID: {uid}")
             debug_print(json.dumps({"status": "deleted", "uid": uid, "nombre": nombre}))
         else:
