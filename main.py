@@ -49,6 +49,11 @@ class RFIDSystem:
         # Variables
         self.puerto = None
         self.reading_card = False
+        self.serial_connection = None  # Conexión serial persistente
+        self.connection_lock = threading.Lock()  # Lock para thread-safety
+        
+        # Configurar evento de cierre de ventana
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         
         # Configurar base de datos
         self.setup_database()
@@ -156,42 +161,42 @@ class RFIDSystem:
         
         # Grid de botones mejorado
         buttons_container = tk.Frame(scrollable_frame, bg='#f0f0f0')
-        buttons_container.pack(fill=tk.X, padx=20, pady=10)
+        buttons_container.pack(fill=tk.X, padx=30, pady=20)
         
         # Primera fila de botones
         row1_frame = tk.Frame(buttons_container, bg='#f0f0f0')
-        row1_frame.pack(fill=tk.X, pady=5)
+        row1_frame.pack(fill=tk.X, pady=8)
         self.btn_registrar = self.create_modern_button(row1_frame, "Registrar\nNuevo Alumno", 
                                                      '#3498db', self.abrir_registro)
-        self.btn_registrar.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+        self.btn_registrar.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
         
-        self.btn_consultar = self.create_modern_button(row1_frame, "Consultar\nTarjeta", 
+        self.btn_consultar = self.create_modern_button(row1_frame, "Consulta\nAutomática", 
                                                      '#27ae60', self.abrir_consulta)
-        self.btn_consultar.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+        self.btn_consultar.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(10, 0))
         
         # Segunda fila de botones
         row2_frame = tk.Frame(buttons_container, bg='#f0f0f0')
-        row2_frame.pack(fill=tk.X, pady=5)
+        row2_frame.pack(fill=tk.X, pady=8)
         
         self.btn_eliminar = self.create_modern_button(row2_frame, "Eliminar\nTarjeta", 
                                                     '#e74c3c', self.abrir_eliminacion)
-        self.btn_eliminar.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+        self.btn_eliminar.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
         
         self.btn_estadisticas = self.create_modern_button(row2_frame, "Ver\nEstadísticas", 
                                                         '#9b59b6', self.mostrar_estadisticas)
-        self.btn_estadisticas.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+        self.btn_estadisticas.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(10, 0))
         
         # Tercera fila - botones adicionales
         row3_frame = tk.Frame(buttons_container, bg='#f0f0f0')
-        row3_frame.pack(fill=tk.X, pady=5)
+        row3_frame.pack(fill=tk.X, pady=8)
         
         self.btn_lista_alumnos = self.create_modern_button(row3_frame, "Lista de\nAlumnos", 
                                                          '#34495e', self.mostrar_lista_alumnos)
-        self.btn_lista_alumnos.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+        self.btn_lista_alumnos.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
         
         self.btn_backup = self.create_modern_button(row3_frame, "Backup\nDatos", 
                                                   '#16a085', self.crear_backup)
-        self.btn_backup.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+        self.btn_backup.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(10, 0))
         
         # Log mejorado
         log_frame = tk.LabelFrame(scrollable_frame, text="Registro de Actividad", 
@@ -219,9 +224,10 @@ class RFIDSystem:
     def create_modern_button(self, parent, text, color, command):
         """Crear botón moderno con efectos hover"""
         btn = tk.Button(parent, text=text, bg=color, fg='white', 
-                       font=Font(family="Arial", size=10, weight="bold"),
+                       font=Font(family="Arial", size=11, weight="bold"),
                        command=command, relief='flat', bd=0, 
-                       pady=15, cursor='hand2')
+                       pady=18, padx=20, cursor='hand2',
+                       width=12, height=3)
         
         # Efectos hover
         def on_enter(e):
@@ -647,9 +653,17 @@ class RFIDSystem:
 
     def reconectar_arduino(self):
         """Reconectar con el Arduino"""
-        self.status_label.config(text="Reconectando...", fg='#f39c12')
-        self.toggle_buttons(False)
-        self.buscar_arduino()
+        def reconectar():
+            self.root.after(0, lambda: self.status_label.config(text="Reconectando...", fg='#f39c12'))
+            self.root.after(0, lambda: self.toggle_buttons(False))
+            
+            # Cerrar conexión actual
+            self.cerrar_conexion_serial()
+            
+            # Buscar de nuevo
+            self.buscar_arduino()
+        
+        threading.Thread(target=reconectar, daemon=True).start()
     
     def grafico_grupos(self):
         """Mostrar gráfico de distribución por grupos"""
@@ -766,10 +780,16 @@ class RFIDSystem:
             
             if puerto:
                 self.puerto = puerto
-                self.root.after(0, lambda: self.status_label.config(
-                    text=f"Lector RFID conectado en {puerto}", fg='#27ae60'))
-                self.root.after(0, lambda: self.toggle_buttons(True))
-                self.log_message(f"Lector RFID encontrado en {puerto}", "SUCCESS")
+                # Establecer conexión serial persistente
+                if self.abrir_conexion_serial():
+                    self.root.after(0, lambda: self.status_label.config(
+                        text=f"Lector RFID conectado en {puerto}", fg='#27ae60'))
+                    self.root.after(0, lambda: self.toggle_buttons(True))
+                    self.log_message(f"Lector RFID conectado y listo en {puerto}", "SUCCESS")
+                else:
+                    self.root.after(0, lambda: self.status_label.config(
+                        text="Error de conexión RFID", fg='#e74c3c'))
+                    self.log_message("Error al establecer conexión con el lector RFID", "ERROR")
             else:
                 self.root.after(0, lambda: self.status_label.config(
                     text="Lector RFID no encontrado", fg='#e74c3c'))
@@ -829,33 +849,90 @@ class RFIDSystem:
         except:
             return False
     
-    def leer_uid(self, timeout_global=10):
-        """Lee UID del puerto serial"""
+    def abrir_conexion_serial(self):
+        """Abrir conexión serial persistente"""
         try:
-            ser = serial.Serial(self.puerto, BAUD_RATE, timeout=0.1, write_timeout=1)
-            time.sleep(0.2)
+            if self.serial_connection and self.serial_connection.is_open:
+                self.serial_connection.close()
+            
+            self.serial_connection = serial.Serial(self.puerto, BAUD_RATE, timeout=0.1, write_timeout=1)
+            time.sleep(2.0)  # Tiempo para que el Arduino se inicialice
             
             try:
-                ser.reset_input_buffer()
+                self.serial_connection.reset_input_buffer()
             except:
                 pass
             
-            start = time.time()
-            while time.time() - start < timeout_global:
-                try:
-                    line = ser.readline().decode(errors="ignore").strip()
-                    if line:
-                        data = json.loads(line)
-                        if isinstance(data, dict) and "uid" in data:
-                            ser.close()
-                            return data["uid"]
-                except:
-                    continue
-            
-            ser.close()
-            raise TimeoutError("No se recibió UID")
+            self.log_message("Conexión serial establecida", "SUCCESS")
+            return True
         except Exception as e:
-            raise e
+            self.log_message(f"Error al abrir conexión serial: {e}", "ERROR")
+            return False
+    
+    def cerrar_conexion_serial(self):
+        """Cerrar conexión serial persistente"""
+        try:
+            if self.serial_connection and self.serial_connection.is_open:
+                self.serial_connection.close()
+                self.serial_connection = None
+                self.log_message("Conexión serial cerrada", "INFO")
+        except Exception as e:
+            self.log_message(f"Error al cerrar conexión serial: {e}", "ERROR")
+    
+    def leer_uid(self, timeout_global=10):
+        """Lee UID usando conexión serial persistente"""
+        with self.connection_lock:
+            try:
+                # Verificar que la conexión esté activa
+                if not self.serial_connection or not self.serial_connection.is_open:
+                    if not self.abrir_conexion_serial():
+                        raise Exception("No se pudo establecer conexión serial")
+                
+                # Limpiar buffer antes de leer
+                try:
+                    self.serial_connection.reset_input_buffer()
+                except:
+                    pass
+                
+                start = time.time()
+                while time.time() - start < timeout_global:
+                    try:
+                        if self.serial_connection.in_waiting > 0:
+                            line = self.serial_connection.readline().decode(errors="ignore").strip()
+                            if line:
+                                data = json.loads(line)
+                                if isinstance(data, dict) and "uid" in data:
+                                    return data["uid"]
+                    except json.JSONDecodeError:
+                        continue
+                    except Exception as e:
+                        # Si hay error de conexión, intentar reconectar
+                        if "device" in str(e).lower() or "port" in str(e).lower():
+                            self.log_message("Reconectando puerto serial...", "WARNING")
+                            if not self.abrir_conexion_serial():
+                                raise Exception("Perdida de conexión serial")
+                        continue
+                    
+                    time.sleep(0.05)  # Pequeña pausa para no saturar la CPU
+                
+                raise TimeoutError("No se recibió UID")
+            except Exception as e:
+                raise e
+    
+    def on_closing(self):
+        """Manejar el cierre de la aplicación"""
+        try:
+            self.log_message("Cerrando sistema...", "INFO")
+            # Cerrar conexión serial
+            self.cerrar_conexion_serial()
+            # Cerrar base de datos
+            if hasattr(self, 'conn'):
+                self.conn.close()
+            # Cerrar aplicación
+            self.root.destroy()
+        except Exception as e:
+            self.log_message(f"Error al cerrar: {e}", "ERROR")
+            self.root.destroy()
     
     def abrir_registro(self):
         """Abrir ventana de registro"""
@@ -1045,6 +1122,8 @@ class RegistroWindow:
             except Exception as e:
                 self.parent.root.after(0, lambda: messagebox.showerror("Error", f"Error al leer tarjeta: {e}"))
                 self.parent.root.after(0, lambda: self.btn_leer.config(state='normal'))
+            finally:
+                self.sincronizar_datos()
         
         threading.Thread(target=leer_tarjeta, daemon=True).start()
 
@@ -1053,25 +1132,42 @@ class ConsultaWindow:
         self.parent = parent
         self.window = tk.Toplevel(parent.root)
         self.window.title("Consultar Tarjeta")
-        self.window.geometry("400x300")
+        self.window.geometry("450x350")
         self.window.configure(bg='#f0f0f0')
         
         self.window.transient(parent.root)
         self.window.grab_set()
         
+        # Variable para controlar la lectura automática
+        self.reading_active = True
+        
         self.create_widgets()
+        
+        # Iniciar lectura automática inmediatamente
+        self.start_automatic_reading()
+        
+        # Configurar el evento de cierre
+        self.window.protocol("WM_DELETE_WINDOW", self.on_close)
 
     def create_widgets(self):
         frame = ttk.Frame(self.window, padding="20")
         frame.pack(fill=tk.BOTH, expand=True)
         
-        title = tk.Label(frame, text="Consulta de Tarjeta", 
+        title = tk.Label(frame, text="Consulta Automática de Tarjeta", 
                         font=self.parent.font_title, bg='#f0f0f0')
         title.pack(pady=(0, 20))
         
-        self.status_label = tk.Label(frame, text="Presione 'Consultar' y acerque la tarjeta", 
-                                   font=self.parent.font_normal, bg='#f0f0f0', fg='#7f8c8d')
-        self.status_label.pack(pady=20)
+        # Indicador visual de estado
+        status_frame = tk.Frame(frame, bg='#f0f0f0')
+        status_frame.pack(pady=10)
+        
+        self.status_indicator = tk.Label(status_frame, text="●", 
+                                       font=Font(size=20), bg='#f0f0f0', fg='#27ae60')
+        self.status_indicator.pack(side=tk.LEFT, padx=5)
+        
+        self.status_label = tk.Label(status_frame, text="Listo para leer. Acerque su tarjeta...", 
+                                   font=self.parent.font_normal, bg='#f0f0f0', fg='#27ae60')
+        self.status_label.pack(side=tk.LEFT)
         
         # Área de resultados
         self.result_frame = ttk.LabelFrame(frame, text="Información del Alumno", padding="10")
@@ -1085,61 +1181,152 @@ class ConsultaWindow:
         btn_frame = ttk.Frame(frame)
         btn_frame.pack(pady=20)
         
-        self.btn_consultar = tk.Button(btn_frame, text="Consultar", 
-                                     bg='#27ae60', fg='white', font=self.parent.font_button,
-                                     command=self.consultar_tarjeta)
-        self.btn_consultar.pack(side=tk.LEFT, padx=5)
+        self.btn_toggle = tk.Button(btn_frame, text="Pausar Lectura", 
+                                  bg='#f39c12', fg='white', font=self.parent.font_button,
+                                  command=self.toggle_reading)
+        self.btn_toggle.pack(side=tk.LEFT, padx=5)
+        
+        btn_limpiar = tk.Button(btn_frame, text="Limpiar", 
+                              bg='#95a5a6', fg='white', font=self.parent.font_button,
+                              command=self.clear_results)
+        btn_limpiar.pack(side=tk.LEFT, padx=5)
         
         btn_cerrar = tk.Button(btn_frame, text="Cerrar", 
-                             bg='#95a5a6', fg='white', font=self.parent.font_button,
-                             command=self.window.destroy)
+                             bg='#e74c3c', fg='white', font=self.parent.font_button,
+                             command=self.on_close)
         btn_cerrar.pack(side=tk.LEFT, padx=5)
 
-    def consultar_tarjeta(self):
-        def consultar():
-            try:
-                self.parent.root.after(0, lambda: self.status_label.config(
-                    text="Acerque la tarjeta al lector...", fg='#f39c12'))
-                self.parent.root.after(0, lambda: self.btn_consultar.config(state='disabled'))
+    def start_automatic_reading(self):
+        """Iniciar la lectura automática de tarjetas"""
+        def read_loop():
+            while self.reading_active:
+                try:
+                    if not hasattr(self, 'window') or not self.window.winfo_exists():
+                        break
+                    
+                    # Verificar que hay conexión serial activa
+                    if not self.parent.serial_connection or not self.parent.serial_connection.is_open:
+                        self.parent.root.after(0, lambda: self.update_status(
+                            "Reestableciendo conexión...", '#f39c12', '◐'))
+                        if not self.parent.abrir_conexion_serial():
+                            self.parent.root.after(0, lambda: self.update_status(
+                                "Sin conexión serial", '#e74c3c', '●'))
+                            time.sleep(2)
+                            continue
+                    
+                    # Actualizar estado visual
+                    self.parent.root.after(0, lambda: self.update_status(
+                        "Listo para leer. Acerque su tarjeta...", '#27ae60', '●'))
+                    
+                    # Leer UID con timeout corto para mantener responsividad
+                    uid = self.parent.leer_uid(timeout_global=0.5)  # Timeout más corto
+                    
+                    if uid and self.reading_active:
+                        self.process_card(uid)
+                        # Pausa después de procesar una tarjeta para evitar lecturas múltiples
+                        time.sleep(2)
+                    
+                except TimeoutError:
+                    # Timeout normal, continuar el bucle
+                    continue
+                except Exception as e:
+                    if self.reading_active:
+                        self.parent.root.after(0, lambda: self.update_status(
+                            f"Error: {str(e)[:30]}...", '#e74c3c', '●'))
+                        time.sleep(1)
                 
-                uid = self.parent.leer_uid(timeout_global=20)
+                # Pequeña pausa para no saturar el sistema
+                time.sleep(0.1)
+        
+        threading.Thread(target=read_loop, daemon=True).start()
+    
+    def process_card(self, uid):
+        """Procesar la tarjeta leída"""
+        def process():
+            try:
+                # Actualizar estado visual
+                self.parent.root.after(0, lambda: self.update_status(
+                    "Procesando tarjeta...", '#f39c12', '◐'))
                 
                 # Buscar en base de datos
                 self.parent.cursor.execute("SELECT nombre, grupo, control FROM alumnos WHERE uid=?", (uid,))
                 alumno = self.parent.cursor.fetchone()
                 
+                timestamp = datetime.now().strftime("%H:%M:%S")
+                
                 if alumno:
                     nombre, grupo, control = alumno
-                    resultado = f"Nombre: {nombre}\nGrupo: {grupo}\nControl: {control}\nUID: {uid}"
-                    self.parent.log_message(f"Consulta exitosa - Alumno: {nombre}", "SUCCESS")
+                    resultado = f"[{timestamp}] TARJETA ENCONTRADA\n"
+                    resultado += f"Nombre: {nombre}\n"
+                    resultado += f"Grupo: {grupo}\n"
+                    resultado += f"Control: {control}\n"
+                    resultado += f"UID: {uid}\n"
+                    resultado += "-" * 30 + "\n"
                     
-                    self.parent.root.after(0, lambda: self.status_label.config(
-                        text="Tarjeta encontrada", fg='#27ae60'))
+                    self.parent.log_message(f"Consulta automática exitosa - Alumno: {nombre}", "SUCCESS")
+                    
+                    self.parent.root.after(0, lambda: self.update_status(
+                        f"¡Tarjeta encontrada! {nombre}", '#27ae60', '●'))
                 else:
-                    resultado = f"Tarjeta no registrada\nUID: {uid}"
-                    self.parent.log_message(f"Tarjeta no registrada - UID: {uid}", "WARNING")
+                    resultado = f"[{timestamp}] TARJETA NO REGISTRADA\n"
+                    resultado += f"UID: {uid}\n"
+                    resultado += "-" * 30 + "\n"
                     
-                    self.parent.root.after(0, lambda: self.status_label.config(
-                        text="Tarjeta no registrada", fg='#f39c12'))
+                    self.parent.log_message(f"Tarjeta no registrada (automático) - UID: {uid}", "WARNING")
+                    
+                    self.parent.root.after(0, lambda: self.update_status(
+                        "Tarjeta no registrada", '#f39c12', '●'))
                 
+                # Actualizar resultados
                 def actualizar_resultado():
-                    self.result_text.config(state='normal')
-                    self.result_text.delete(1.0, tk.END)
-                    self.result_text.insert(1.0, resultado)
-                    self.result_text.config(state='disabled')
-                    self.btn_consultar.config(state='normal')
+                    if hasattr(self, 'result_text'):
+                        self.result_text.config(state='normal')
+                        # Insertar al inicio para mostrar la lectura más reciente arriba
+                        self.result_text.insert(1.0, resultado)
+                        self.result_text.config(state='disabled')
+                        # Scroll al top para mostrar el resultado más reciente
+                        self.result_text.see(1.0)
                 
                 self.parent.root.after(0, actualizar_resultado)
                 
-            except TimeoutError:
-                self.parent.root.after(0, lambda: self.status_label.config(
-                    text="Tiempo agotado", fg='#e74c3c'))
-                self.parent.root.after(0, lambda: self.btn_consultar.config(state='normal'))
             except Exception as e:
-                self.parent.root.after(0, lambda: messagebox.showerror("Error", f"Error: {e}"))
-                self.parent.root.after(0, lambda: self.btn_consultar.config(state='normal'))
+                self.parent.root.after(0, lambda: self.update_status(
+                    f"Error: {str(e)[:20]}...", '#e74c3c', '●'))
         
-        threading.Thread(target=consultar, daemon=True).start()
+        threading.Thread(target=process, daemon=True).start()
+    
+    def update_status(self, text, color, indicator):
+        """Actualizar el estado visual"""
+        try:
+            if hasattr(self, 'status_label') and hasattr(self, 'status_indicator'):
+                self.status_label.config(text=text, fg=color)
+                self.status_indicator.config(fg=color, text=indicator)
+        except:
+            pass
+    
+    def toggle_reading(self):
+        """Alternar entre activar/pausar la lectura automática"""
+        self.reading_active = not self.reading_active
+        
+        if self.reading_active:
+            self.btn_toggle.config(text="Pausar Lectura", bg='#f39c12')
+            self.update_status("Lectura reactivada. Acerque su tarjeta...", '#27ae60', '●')
+            self.start_automatic_reading()
+        else:
+            self.btn_toggle.config(text="Reanudar Lectura", bg='#27ae60')
+            self.update_status("Lectura pausada", '#95a5a6', '○')
+    
+    def clear_results(self):
+        """Limpiar los resultados mostrados"""
+        self.result_text.config(state='normal')
+        self.result_text.delete(1.0, tk.END)
+        self.result_text.config(state='disabled')
+    
+    def on_close(self):
+        """Manejar el cierre de la ventana"""
+        self.reading_active = False
+        time.sleep(0.2)  # Dar tiempo a que termine el hilo de lectura
+        self.window.destroy()
 
 class EliminacionWindow:
     def __init__(self, parent):
